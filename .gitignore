@@ -1,0 +1,56 @@
+# Hyperledger Fabric binaries and default config
+bin/
+config/
+builders/
+
+# Generated runtime artifacts for the network
+channel-artifacts/
+system-genesis-block/*.block
+*.block
+*.json
+*.pb
+*.tx
+log.txt
+*.log
+*.tar.gz
+*.gz
+
+# Keep genesis directory structure
+!system-genesis-block/.gitkeep
+
+# Crypto material
+organizations/peerOrganizations/
+organizations/ordererOrganizations/
+organizations/fabric-ca/*/*
+!organizations/fabric-ca/registerEnroll.sh
+!organizations/fabric-ca/ordererOrg
+!organizations/fabric-ca/manufacturer
+!organizations/fabric-ca/showroom
+organizations/fabric-ca/manufacturer/*
+!organizations/fabric-ca/manufacturer/fabric-ca-server-config.yaml
+organizations/fabric-ca/showroom/*
+!organizations/fabric-ca/showroom/fabric-ca-server-config.yaml
+organizations/fabric-ca/ordererOrg/*
+!organizations/fabric-ca/ordererOrg/fabric-ca-server-config.yaml
+
+addCustomer/fabric-ca/*/
+!addCustomer/fabric-ca/customer/
+addCustomer/fabric-ca/customer/*
+!addCustomer/fabric-ca/customer/fabric-ca-server-config.yaml
+
+# Never commit private key material anywhere
+**/keystore/*
+**/*_sk
+
+# Local Explorer environment files
+explorer/.env
+explorer/.env.*
+!explorer/.env.example
+explorer/wallet/
+
+# Development artifacts
+node_modules/
+vendor/
+.idea/
+.vscode/
+.DS_Store

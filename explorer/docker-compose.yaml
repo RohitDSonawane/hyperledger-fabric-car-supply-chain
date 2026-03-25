@@ -1,0 +1,62 @@
+volumes:
+  pgdata:
+  walletstore:
+
+networks:
+  mynetwork:
+    name: fabric_test
+    external: true
+
+services:
+  explorerdb:
+    image: ghcr.io/hyperledger-labs/explorer-db:latest
+    container_name: explorerdb.mynetwork.com
+    hostname: explorerdb.mynetwork.com
+    env_file:
+      - ./.env
+    environment:
+      - DATABASE_DATABASE=${EXPLORER_DB_NAME}
+      - DATABASE_USERNAME=${EXPLORER_DB_USER}
+      - DATABASE_PASSWORD=${EXPLORER_DB_PASSWORD}
+    healthcheck:
+      test: "pg_isready -h localhost -p 5432 -q -U postgres"
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - mynetwork
+
+  explorer:
+    image: ghcr.io/hyperledger-labs/explorer:latest
+    container_name: explorer.mynetwork.com
+    hostname: explorer.mynetwork.com
+    env_file:
+      - ./.env
+    environment:
+      - DATABASE_HOST=explorerdb.mynetwork.com
+      - DATABASE_DATABASE=${EXPLORER_DB_NAME}
+      - DATABASE_USERNAME=${EXPLORER_DB_USER}
+      - DATABASE_PASSWD=${EXPLORER_DB_PASSWORD}
+      - LOG_LEVEL_APP=${EXPLORER_LOG_LEVEL_APP}
+      - LOG_LEVEL_DB=${EXPLORER_LOG_LEVEL_DB}
+      - LOG_LEVEL_CONSOLE=${EXPLORER_LOG_LEVEL_CONSOLE}
+      - LOG_CONSOLE_STDOUT=true
+      - DISCOVERY_AS_LOCALHOST=${DISCOVERY_AS_LOCALHOST}
+    volumes:
+      - ./config.json:/opt/explorer/app/platform/fabric/config.json
+      - ./connection-profile:/opt/explorer/app/platform/fabric/connection-profile
+      - ./render-connection-profile.js:/opt/explorer/render-connection-profile.js
+      - ./patch-lscc-fallback.js:/opt/explorer/patch-lscc-fallback.js
+      - ../organizations:/tmp/crypto
+      - walletstore:/opt/explorer/wallet
+    command: >
+      sh -lc "node /opt/explorer/render-connection-profile.js && node /opt/explorer/patch-lscc-fallback.js && ./start.sh"
+    ports:
+      - 8080:8080
+    depends_on:
+      explorerdb:
+        condition: service_healthy
+    networks:
+      - mynetwork
