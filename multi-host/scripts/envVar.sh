@@ -17,6 +17,14 @@
 TEST_NETWORK_HOME=${TEST_NETWORK_HOME:-${PWD}}
 . ${TEST_NETWORK_HOME}/scripts/utils.sh
 
+# Load environment variables if .env exists
+if [ -f "${TEST_NETWORK_HOME}/.env" ]; then
+  source "${TEST_NETWORK_HOME}/.env"
+fi
+
+# Default to single-PC mode if not specified
+HLF_MODE=${HLF_MODE:-single}
+
 export CORE_PEER_TLS_ENABLED=true
 export ORDERER_CA=${TEST_NETWORK_HOME}/organizations/ordererOrganizations/example.com/tlsca/tlsca.example.com-cert.pem
 export PEER0_MANUFACTURER_CA=${TEST_NETWORK_HOME}/organizations/peerOrganizations/manufacturer.example.com/tlsca/tlsca.manufacturer.example.com-cert.pem
@@ -36,17 +44,29 @@ setGlobals() {
     export CORE_PEER_LOCALMSPID=ManufacturerMSP
     export CORE_PEER_TLS_ROOTCERT_FILE=$PEER0_MANUFACTURER_CA
     export CORE_PEER_MSPCONFIGPATH=${TEST_NETWORK_HOME}/organizations/peerOrganizations/manufacturer.example.com/users/Admin@manufacturer.example.com/msp
-    export CORE_PEER_ADDRESS=localhost:7051
+    if [ "$HLF_MODE" == "distributed" ]; then
+      export CORE_PEER_ADDRESS=${MANUFACTURERP_HOST:-peer0.manufacturer.example.com}:7051
+    else
+      export CORE_PEER_ADDRESS=localhost:7051
+    fi
   elif [ $USING_ORG -eq 2 ]; then
     export CORE_PEER_LOCALMSPID=ShowroomMSP
     export CORE_PEER_TLS_ROOTCERT_FILE=$PEER0_SHOWROOM_CA
     export CORE_PEER_MSPCONFIGPATH=${TEST_NETWORK_HOME}/organizations/peerOrganizations/showroom.example.com/users/Admin@showroom.example.com/msp
-    export CORE_PEER_ADDRESS=localhost:9051
+    if [ "$HLF_MODE" == "distributed" ]; then
+      export CORE_PEER_ADDRESS=${SHOWROOMP_HOST:-peer0.showroom.example.com}:9051
+    else
+      export CORE_PEER_ADDRESS=localhost:9051
+    fi
   elif [ $USING_ORG -eq 3 ]; then
     export CORE_PEER_LOCALMSPID=CustomerMSP
     export CORE_PEER_TLS_ROOTCERT_FILE=$PEER0_CUSTOMER_CA
     export CORE_PEER_MSPCONFIGPATH=${TEST_NETWORK_HOME}/organizations/peerOrganizations/customer.example.com/users/Admin@customer.example.com/msp
-    export CORE_PEER_ADDRESS=localhost:11051
+    if [ "$HLF_MODE" == "distributed" ]; then
+      export CORE_PEER_ADDRESS=${CUSTOMERP_HOST:-peer0.customer.example.com}:11051
+    else
+      export CORE_PEER_ADDRESS=localhost:11051
+    fi
   else
     errorln "ORG Unknown"
   fi

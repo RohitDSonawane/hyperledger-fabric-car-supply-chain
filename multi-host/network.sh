@@ -18,6 +18,15 @@
 # this script is actually in and infer location from there. (putting first)
 
 ROOTDIR=$(cd "$(dirname "$0")" && pwd)
+
+# Load environment variables if .env exists
+if [ -f "${ROOTDIR}/.env" ]; then
+  source "${ROOTDIR}/.env"
+fi
+
+# Default to single-PC mode if not specified
+HLF_MODE=${HLF_MODE:-single}
+
 export PATH=${ROOTDIR}/bin:${PWD}/bin:$PATH
 export FABRIC_CFG_PATH=${PWD}/configtx
 export VERBOSE=false

@@ -46,9 +46,10 @@
 # --- Service-Specific Data ---
 
 # Hyperledger Explorer
-**/explorer/.env
-**/explorer/.env.*
-!**/explorer/.env.example
+# Local environment files (Passwords/IPs/Configs)
+**/.env
+**/.env.*
+!**/.env.example
 **/explorer/wallet/
 **/explorer/data/
 

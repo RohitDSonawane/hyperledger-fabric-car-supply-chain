@@ -15,6 +15,14 @@ set -o pipefail
 # Where am I?
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+# Load environment variables if .env exists
+if [ -f "${DIR}/.env" ]; then
+  source "${DIR}/.env"
+fi
+
+# Default to single-PC mode if not specified
+HLF_MODE=${HLF_MODE:-single}
+
 ORDERER_CA=${DIR}/organizations/ordererOrganizations/example.com/tlsca/tlsca.example.com-cert.pem
 PEER0_MANUFACTURER_CA=${DIR}/organizations/peerOrganizations/manufacturer.example.com/tlsca/tlsca.manufacturer.example.com-cert.pem
 PEER0_SHOWROOM_CA=${DIR}/organizations/peerOrganizations/showroom.example.com/tlsca/tlsca.showroom.example.com-cert.pem
@@ -25,21 +33,33 @@ if [[ ${ORG,,} == "manufacturer" || ${ORG,,} == "digibank" ]]; then
 
    CORE_PEER_LOCALMSPID=ManufacturerMSP
    CORE_PEER_MSPCONFIGPATH=${DIR}/organizations/peerOrganizations/manufacturer.example.com/users/Admin@manufacturer.example.com/msp
-   CORE_PEER_ADDRESS=localhost:7051
+   if [ "$HLF_MODE" == "distributed" ]; then
+      CORE_PEER_ADDRESS=${MANUFACTURERP_HOST:-peer0.manufacturer.example.com}:7051
+   else
+      CORE_PEER_ADDRESS=localhost:7051
+   fi
    CORE_PEER_TLS_ROOTCERT_FILE=${DIR}/organizations/peerOrganizations/manufacturer.example.com/tlsca/tlsca.manufacturer.example.com-cert.pem
 
 elif [[ ${ORG,,} == "showroom" || ${ORG,,} == "magnetocorp" ]]; then
 
    CORE_PEER_LOCALMSPID=ShowroomMSP
    CORE_PEER_MSPCONFIGPATH=${DIR}/organizations/peerOrganizations/showroom.example.com/users/Admin@showroom.example.com/msp
-   CORE_PEER_ADDRESS=localhost:9051
+   if [ "$HLF_MODE" == "distributed" ]; then
+      CORE_PEER_ADDRESS=${SHOWROOMP_HOST:-peer0.showroom.example.com}:9051
+   else
+      CORE_PEER_ADDRESS=localhost:9051
+   fi
    CORE_PEER_TLS_ROOTCERT_FILE=${DIR}/organizations/peerOrganizations/showroom.example.com/tlsca/tlsca.showroom.example.com-cert.pem
 
 elif [[ ${ORG,,} == "customer" ]]; then
 
    CORE_PEER_LOCALMSPID=CustomerMSP
    CORE_PEER_MSPCONFIGPATH=${DIR}/organizations/peerOrganizations/customer.example.com/users/Admin@customer.example.com/msp
-   CORE_PEER_ADDRESS=localhost:11051
+   if [ "$HLF_MODE" == "distributed" ]; then
+      CORE_PEER_ADDRESS=${CUSTOMERP_HOST:-peer0.customer.example.com}:11051
+   else
+      CORE_PEER_ADDRESS=localhost:11051
+   fi
    CORE_PEER_TLS_ROOTCERT_FILE=${DIR}/organizations/peerOrganizations/customer.example.com/tlsca/tlsca.customer.example.com-cert.pem
 
 else
