@@ -15,12 +15,21 @@ Since `Car-Supply-Chain` is safely tracked via Git, do not use `scp` or physical
 mkdir -p /home/raj/HyperledgerFabric
 cd /home/raj/HyperledgerFabric
 git clone https://github.com/RohitDSonawane/hyperledger-fabric-car-supply-chain.git
-cd hyperledger-fabric-car-supply-chain/multi-host
+cd hyperledger-fabric-car-supply-chain
 ```
 
 ### A.1. Run Automated Prerequisite Checks
 Before any work inside the repository, execute the automated checker script detailed in **Phase 2.1.5**. 
-Consult `01_5_automated_prerequisites.md` and execute `/home/raj/HyperledgerFabric/plan/phase2/check_prerequisites.sh` on all 5 nodes before continuing.
+Consult `01_5_automated_prerequisites.md` and execute both scripts from:
+
+`/home/raj/HyperledgerFabric/hyperledger-fabric-car-supply-chain/plan/phase2/`
+
+Run on every node:
+```bash
+cd /home/raj/HyperledgerFabric/hyperledger-fabric-car-supply-chain/plan/phase2
+chmod +x install_distributed_deps.sh
+./install_distributed_deps.sh
+```
 
 ### B. Join ZeroTier network and pin stable identity
 - Join all hosts to the same ZeroTier network.
