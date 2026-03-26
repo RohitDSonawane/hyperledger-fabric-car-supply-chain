@@ -17,7 +17,7 @@ FABRIC_SAMPLES_DIR="${FABRIC_SAMPLES_DIR:-$HOME/fabric-samples}"
 REQUIRED_PACKAGES=(
     build-essential curl wget git jq net-tools openssh-server
     ca-certificates gnupg lsb-release software-properties-common
-    unzip tar netcat-openbsd docker-compose-plugin
+    unzip tar netcat-openbsd
 )
 
 # --- Visual Setup ---
@@ -44,6 +44,18 @@ echo -e "\n[0/7] Synchronizing System Repositories..."
 sudo apt update && sudo apt upgrade -y
 sudo apt install -y "${REQUIRED_PACKAGES[@]}"
 info "System base updated."
+
+# Docker compose packaging differs by distro/repo state.
+# Try plugin first, then fall back to legacy docker-compose package.
+if ! docker compose version >/dev/null 2>&1; then
+    echo -e "${YELLOW}docker compose plugin not detected, attempting package install...${NC}"
+    if sudo apt install -y docker-compose-plugin; then
+        info "Installed docker-compose-plugin."
+    else
+        warn "docker-compose-plugin package not available on this host. Falling back to docker-compose."
+        sudo apt install -y docker-compose
+    fi
+fi
 
 # --- Task 1: Go (Clean Slate & Sync) ---
 echo -e "\n[1/7] Syncing Go Language to version $TARGET_GO_VER..."
@@ -154,7 +166,13 @@ echo "Node: $(node -v 2>/dev/null || echo missing)"
 echo "Peer: $(peer version 2>/dev/null | sed -ne 's/^ Version: //p' || echo missing)"
 echo "CfgG: $(command -v configtxgen >/dev/null 2>&1 && echo found || echo missing)"
 echo "CfgL: $(command -v configtxlator >/dev/null 2>&1 && echo found || echo missing)"
-echo "Dcmp: $(docker compose version >/dev/null 2>&1 && echo found || echo missing)"
+if docker compose version >/dev/null 2>&1; then
+    echo "Dcmp: found (docker compose plugin)"
+elif command -v docker-compose >/dev/null 2>&1; then
+    echo "Dcmp: found (docker-compose legacy)"
+else
+    echo "Dcmp: missing"
+fi
 echo "SamplesDir: $( [ -d "$FABRIC_SAMPLES_DIR" ] && echo "$FABRIC_SAMPLES_DIR" || echo missing )"
 
 echo -e "\n${CYAN}Post-install quick checks:${NC}"
