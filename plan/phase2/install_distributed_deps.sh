@@ -6,6 +6,16 @@
 set -e
 set -o pipefail
 
+if [[ -n "${SUDO_USER:-}" && "${SUDO_USER}" != "root" ]]; then
+    RUN_USER="${SUDO_USER}"
+    RUN_HOME="$(getent passwd "${SUDO_USER}" | cut -d: -f6)"
+else
+    RUN_USER="${USER}"
+    RUN_HOME="${HOME}"
+fi
+
+BASHRC_FILE="${RUN_HOME}/.bashrc"
+
 # --- Configuration (Production Targets) ---
 TARGET_GO_VER="1.24.0"
 TARGET_NODE_MAJOR="20"
@@ -39,6 +49,19 @@ info() {
     echo -e "${GREEN}[OK] $1${NC}"
 }
 
+run_as_user() {
+    local cmd="$1"
+    if [ "$(id -un)" = "$RUN_USER" ]; then
+        bash -lc "$cmd"
+    else
+        sudo -u "$RUN_USER" -H bash -lc "$cmd"
+    fi
+}
+
+user_has_docker_access() {
+    run_as_user "docker info >/dev/null 2>&1"
+}
+
 # --- Task 0: System OS Sync ---
 echo -e "\n[0/7] Synchronizing System Repositories..."
 sudo apt update && sudo apt upgrade -y
@@ -67,16 +90,29 @@ if [ "$GO_INSTALLED_VER" != "$TARGET_GO_VER" ]; then
     # CRITICAL: Wipe older/incorrect Go to prevent corruption
     sudo rm -rf /usr/local/go
     
-    # Direct Download & Extract
-    wget -q https://go.dev/dl/go$TARGET_GO_VER.linux-amd64.tar.gz -O /tmp/go.tar.gz
-    sudo tar -C /usr/local -xzf /tmp/go.tar.gz
+    # Direct Download & Extract with fallback and explicit errors
+    GO_TARBALL="go${TARGET_GO_VER}.linux-amd64.tar.gz"
+    GO_URL_PRIMARY="https://go.dev/dl/${GO_TARBALL}"
+    GO_URL_FALLBACK="https://dl.google.com/go/${GO_TARBALL}"
+    GO_TMP="$(mktemp /tmp/go-XXXXXX.tar.gz)"
+
+    echo -e "${CYAN}Downloading ${GO_TARBALL} from go.dev...${NC}"
+    if ! curl -fL --retry 3 --connect-timeout 20 --max-time 1200 -o "$GO_TMP" "$GO_URL_PRIMARY"; then
+        warn "Primary download failed. Trying fallback mirror..."
+        curl -fL --retry 3 --connect-timeout 20 --max-time 1200 -o "$GO_TMP" "$GO_URL_FALLBACK"
+    fi
+
+    if [ ! -s "$GO_TMP" ]; then
+        echo -e "${RED}[ERROR] Go download failed. Temp file is missing or empty.${NC}"
+        exit 1
+    fi
+
+    sudo tar -C /usr/local -xzf "$GO_TMP"
+    rm -f "$GO_TMP"
     
     # Path configuration logic (ensure it's in .bashrc only once)
-    if ! grep -q "/usr/local/go/bin" ~/.bashrc; then
-        echo -e "\n# Hyperledger Fabric Go Paths" >> ~/.bashrc
-        echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
-        echo 'export GOPATH=$HOME/go' >> ~/.bashrc
-        echo 'export PATH=$PATH:$GOPATH/bin' >> ~/.bashrc
+    if ! grep -q "/usr/local/go/bin" "$BASHRC_FILE" 2>/dev/null; then
+        run_as_user "printf '\n# Hyperledger Fabric Go Paths\nexport PATH=\\$PATH:/usr/local/go/bin\nexport GOPATH=\\$HOME/go\nexport PATH=\\$PATH:\\$GOPATH/bin\n' >> '$BASHRC_FILE'"
     fi
     export PATH=$PATH:/usr/local/go/bin
     info "Go $TARGET_GO_VER is now active."
@@ -117,21 +153,22 @@ fi
 echo -e "\n[4/7] Syncing Hyperledger Fabric samples and binaries..."
 
 if [ ! -d "$FABRIC_SAMPLES_DIR" ]; then
-    mkdir -p "$(dirname "$FABRIC_SAMPLES_DIR")"
-    git clone https://github.com/hyperledger/fabric-samples.git "$FABRIC_SAMPLES_DIR"
+    run_as_user "mkdir -p '$(dirname "$FABRIC_SAMPLES_DIR")'"
+    run_as_user "git clone https://github.com/hyperledger/fabric-samples.git '$FABRIC_SAMPLES_DIR'"
 else
     info "fabric-samples already present at $FABRIC_SAMPLES_DIR."
 fi
 
-(
-    cd "$FABRIC_SAMPLES_DIR"
-    curl -sSL https://raw.githubusercontent.com/hyperledger/fabric/main/scripts/install-fabric.sh \
-      | bash -s -- -f "$FABRIC_VERSION" -c "$FABRIC_CA_VERSION" binary docker samples
-)
+if user_has_docker_access; then
+    run_as_user "cd '$FABRIC_SAMPLES_DIR' && curl -sSL https://raw.githubusercontent.com/hyperledger/fabric/main/scripts/install-fabric.sh | bash -s -- -f '$FABRIC_VERSION' -c '$FABRIC_CA_VERSION' binary docker samples"
+    info "Fabric binaries, samples, and docker images synced."
+else
+    warn "Docker socket not accessible for user '$RUN_USER'. Installing binaries/samples only; skipping docker image pull for now."
+    run_as_user "cd '$FABRIC_SAMPLES_DIR' && curl -sSL https://raw.githubusercontent.com/hyperledger/fabric/main/scripts/install-fabric.sh | bash -s -- -f '$FABRIC_VERSION' -c '$FABRIC_CA_VERSION' binary samples"
+fi
 
-if ! grep -q "fabric-samples/bin" ~/.bashrc; then
-    echo -e "\n# Hyperledger Fabric binaries" >> ~/.bashrc
-    echo "export PATH=\$PATH:$FABRIC_SAMPLES_DIR/bin" >> ~/.bashrc
+if ! grep -q "fabric-samples/bin" "$BASHRC_FILE" 2>/dev/null; then
+    run_as_user "printf '\n# Hyperledger Fabric binaries\nexport PATH=\\$PATH:$FABRIC_SAMPLES_DIR/bin\n' >> '$BASHRC_FILE'"
 fi
 export PATH="$PATH:$FABRIC_SAMPLES_DIR/bin"
 
@@ -144,9 +181,9 @@ info "Fabric samples and binaries are synced."
 
 # --- Task 5: Context and Permissions ---
 echo -e "\n[5/7] Finalizing user and Docker permissions..."
-if ! groups $USER | grep -q "\bdocker\b"; then
-    sudo usermod -aG docker $USER
-    warn "Please log out and back in to finalize Docker group permissions."
+if ! id -nG "$RUN_USER" | grep -qw docker; then
+    sudo usermod -aG docker "$RUN_USER"
+    warn "Added '$RUN_USER' to docker group. Log out/login (or restart WSL) then rerun installer to pull docker images."
 else
     info "User permissions verified."
 fi
