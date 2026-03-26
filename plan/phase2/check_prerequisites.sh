@@ -65,4 +65,4 @@ else
 fi
 
 echo -e "\n====== Sync Audit Finished ======"
-echo -e "${YELLOW}Recommendation: If any [ERROR] appeared above, the host will NOT work in the 5-PC cluster.${NC}"
+echo -e "${YELLOW}Recommendation: If any [ERROR] appeared above, the host will NOT work in the 5nd-PC cluster.${NC}"
