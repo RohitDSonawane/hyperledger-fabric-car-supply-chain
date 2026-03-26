@@ -1,35 +1,33 @@
 # Car Supply Chain - Project Ecosystem
 
-## What This Repository Is
-This repository (`Car-Supply-Chain`) contains a fully customized Hyperledger Fabric permissioned blockchain implementation used to model car manufacturing, showroom handling, and customer onboarding.
+## 📂 Repository Structure
+This repository has been restructured into two distinct execution environments to support both local development and distributed learning:
 
-**Difference from `DefaultNetworkFabric`**: 
-If you look at the `DefaultNetworkFabric` folder in your workspace, that acts only as your **infrastructure prerequisite layer** (setting up WSL, Docker, and downloading the base Fabric samples). 
-In contrast, this `Car-Supply-Chain` folder is your **Application Layer**. It takes the vanilla Fabric `test-network` and injects:
-- **Custom Business Logic**: Go chaincode (`carcc`) designed strictly for tracking vehicles and enforcing Access Control Rules (Manufacturer -> Showroom -> Customer).
-- **Dynamic Network Scaling**: Custom scripts (`addCustomer`) to demonstrate how a live blockchain network can onboard a 3rd entity without restarting the chain.
-- **Custom UI Tooling**: Configured Hyperledger Explorer tailored to this specific supply chain for block and transaction visibility.
+1. **[single-host/](./single-host/)**: The original Phase 1 implementation. Designed to run a 2-org + 1-customer network entirely on a single PC using `localhost`.
+2. **[multi-host/](./multi-host/)**: The Phase 2 implementation. Designed for a 5-PC distributed setup over ZeroTier, addressing routable hostnames and multi-node networking.
+3. **[chaincode-go/](./chaincode-go/)**: **Shared Source Folder.** Both topologies share this single Go smart contract directory to ensure business logic consistency.
 
-## Next Goals for this Repository
-Now that the core smart contract, explorer, and network lifecycle are tested and clean, the upcoming roadmap for this project includes:
-1. **Frontend Integration**: Building a web interface or REST API wrapper (Node.js/Go) to trigger chaincode functions without using terminal `peer` commands.
-2. **CouchDB State Database**: Enabling CouchDB across the network to allow rich JSON queries (e.g., "Find all cars currently IN_SHOWROOM colored Black").
-3. **Automated CI/CD**: Pushing pipeline scripts that automatically package the chaincode, evaluate unit tests, and stand up the test network on a remote server.
+---
 
-## Documentation First
-For this repository, start with the split setup manuals in `docs/README.md`.
+## 🚀 Getting Started
 
-Recommended reading flow:
-1. `docs/01_SETUP_OVERVIEW.md`
-2. `docs/02_PREREQUISITES.md`
-3. `docs/03_NETWORK_AND_CHANNEL_SETUP.md`
-4. `docs/04_ADD_CUSTOMER_ORG.md`
-5. `docs/05_CHAINCODE_LIFECYCLE_AND_TESTS.md`
-6. `docs/06_EXPLORER_SETUP_WITH_ENV.md`
-7. `docs/07_VALIDATION_CHECKLIST.md`
-8. `docs/TROUBLESHOOTING_AND_FIXES.md`
+### Path A: Single-PC Tutorial (Phase 1)
+If you are running the entire network on one machine:
+1. Navigate to the `single-host` directory: `cd single-host`
+2. Run the automated setup: `./network.sh up createChannel -c supplychain`
+3. Follow the phase 1 docs: [single-host/docs/README.md](./single-host/docs/README.md)
 
-Workspace task notes are maintained outside this project at `/home/raj/HyperledgerFabric/workspace-notes/`.
+### Path B: Distributed 5-PC Setup (Phase 2)
+If you are moving to the multi-node ZeroTier deployment:
+1. Navigate to the `multi-host` directory: `cd multi-host`
+2. Follow the detailed migration runbooks at the workspace level: [/home/raj/HyperledgerFabric/plan/phase2/README.md](/home/raj/HyperledgerFabric/plan/phase2/README.md)
+3. Ensure you've run the `check_prerequisites.sh` tool in the workspace plan folder.
+
+---
+
+## Workspace Contextual Notes
+Workspace-wide task notes and migration plans are maintained outside this Git project at [/home/raj/HyperledgerFabric/plan/](/home/raj/HyperledgerFabric/plan/).
+
 
 # Running the test network
 

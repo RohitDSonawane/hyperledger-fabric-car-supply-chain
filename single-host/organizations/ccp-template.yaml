@@ -1,0 +1,35 @@
+---
+name: car-supply-chain-${ORG_LOWER}
+version: 1.0.0
+client:
+  organization: ${ORG}
+  connection:
+    timeout:
+      peer:
+        endorser: '300'
+organizations:
+  ${ORG}:
+    mspid: ${ORG}MSP
+    peers:
+    - peer0.${ORG_LOWER}.example.com
+    certificateAuthorities:
+    - ca.${ORG_LOWER}.example.com
+peers:
+  peer0.${ORG_LOWER}.example.com:
+    url: grpcs://localhost:${P0PORT}
+    tlsCACerts:
+      pem: |
+          ${PEERPEM}
+    grpcOptions:
+      ssl-target-name-override: peer0.${ORG_LOWER}.example.com
+      hostnameOverride: peer0.${ORG_LOWER}.example.com
+certificateAuthorities:
+  ca.${ORG_LOWER}.example.com:
+    url: https://localhost:${CAPORT}
+    caName: ca-${ORG_LOWER}
+    tlsCACerts:
+      pem:
+        - |
+          ${CAPEM}
+    httpOptions:
+      verify: false
