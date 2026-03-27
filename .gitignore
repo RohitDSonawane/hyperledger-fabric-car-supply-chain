@@ -57,6 +57,11 @@
 **/prometheus-grafana/grafana_db/*.db
 **/prometheus-grafana/prometheus/data/
 
+# --- Development and Demonstration Artifacts ---
+car-cli/car-cli
+*log.txt
+*.txt
+
 # --- Standard Development Artifacts ---
 node_modules/
 **/vendor/
